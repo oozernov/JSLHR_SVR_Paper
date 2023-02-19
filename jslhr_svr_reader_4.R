@@ -19,14 +19,8 @@ all2$study<-as.factor(all2$study) #define factor for age group
 
 #### Analyze ####
 
-##### Demographics #####
-
-chisq.test(abcd$DD,abcd$Sex)
-demo<-read.csv("demo_reader_jhlr.csv")
-table(demo$DD,demo$rd_diag)
-
-
 ##### Do RC components differ based on Dys x Age? ######
+
 # Test for DD x Grade interaction (Main analysis)
 all2$grade<-as.factor(all2$grade)
 fit4<-lm(RC~DD*grade*(WR+LC+RAN_Letters+Digits), data=all2)
@@ -48,9 +42,11 @@ adult<-all2%>%filter(all2$grade=='adult')
 df_3<-all2%>%filter(all2$grade==3)
 df_4<-all2%>%filter(all2$grade==4)
 
-##### How do RC components predict RC seperatly by Grade and Dys? ######
+##### How do RC components predict RC seperatly by Grade and Group? ######
 
-### 1st Grade ####
+### Linear Models
+
+###### 1st Grade ####
 
 # Create dys groups
 df1_dys<-df_1%>%dplyr::filter(DD=="DD")%>%
@@ -61,7 +57,7 @@ df1_typ<-df_1%>%dplyr::filter(DD=="TYP")%>%
 #Dys
 fit_first_D<-lm(RC~WR+LC+RAN_Letters+Digits, data=df1_dys)
 summary(fit_first_D)
-out_3D<-tidy(fit_first_D)
+out_1D<-tidy(fit_first_D)
 knitr::kable(out_1D)
 lm.beta(fit_first_D)
 fit_first_D2 <- stepAIC(fit_first_D, direction = "both",steps = 1000)
@@ -79,7 +75,7 @@ fit_first_T2$anova
 calc.relimp(fit_first_T, type = c("lmg"),
             rela = TRUE)
 
-#2nd Grade
+###### 2nd Grade #### 
 
 # Create dys groups
 df2_dys<-df_2_read%>%dplyr::filter(DD=="DD")%>%
@@ -110,15 +106,12 @@ calc.relimp(fit_second_T, type = c("lmg"),
             rela = TRUE)
 
 
-# 3rd & 4th Grade
+###### 3rd & 4th Grade #### 
 
 df3_dys<-df_3_4%>%dplyr::filter(DD=="DD")%>%
   select(grade,RC,WR,RAN_Letters,LC,Digits)
 df3_typ<-df_3_4%>%dplyr::filter(DD=="TYP")%>%
   select(DD,RC,WR,RAN_Letters,LC,Digits)
-
-write.csv(df3_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/reviews/JASP/data_jasp/dc_345_N50.csv")
-write.csv(df3_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/reviews/JASP/data_jasp/tc_345_N32.csv")
 
 #Dys
 fit_third_D<-lm(RC~WR+LC+RAN_Letters+Digits, data=df3_dys)
@@ -142,7 +135,7 @@ booteval.relimp(fit_third_T) # print result
 calc.relimp(fit_third_T, type = c("lmg"),
             rela = TRUE)
 
-# Adult
+######  Adult #### 
 
 da_dys<-adult%>%filter(DD=="DD")%>%
   select(DD,RC,WR,RAN_Letters,LC,Digits)
@@ -176,45 +169,39 @@ calc.relimp(fit_adult_T, type = c("lmg"),
             rela = TRUE)
 source("~/Dropbox (MIT)/Annals_SVR/reviews/bf_function.R")
 
-##Bayes
+### Bayesian Models ###
+# Create and run Bayesian models. This part produces Bayes factors. 
+#To compare best models with other models, I saved these into .csv and 
+#compared divded BF for top model by BF for each subsequent model
+
 #1 Typ
-b1_typ <- runRegOnAll(df1_typ) #make sure that there there is one column before RC 
-write.csv(b1_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd1_typ115.csv")
+b1_typ <- runRegOnAll(df1_typ) 
 
 #1 Dys
 b1_dys <- runRegOnAll(df1_dys)
-write.csv(b1_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd1_dys34.csv")
 
 #2 Typ
-b2_typ <- runRegOnAll(df2_typ) #make sure that there there is one column before RC 
-write.csv(b2_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd2_typ.csv")
+b2_typ <- runRegOnAll(df2_typ) 
 
 #2 Dys
 b2_dys <- runRegOnAll(df2_dys)
-write.csv(b2_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd2_dys.csv")
 
 #3 Typ
-b3_typ <- runRegOnAll(df3_typ) #make sure that there there is one column before RC 
-write.csv(b3_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd3_4_typ.csv")
+b3_typ <- runRegOnAll(df3_typ) 
 
 #3 Dys
 b3_dys <- runRegOnAll(df3_dys)
-write.csv(b3_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd3_4_dys.csv")
 
 #4 Dys
 b4_dys <- runRegOnAll(df4_dys)
-write.csv(b4_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd4_dys.csv")
 
 #4 Typ
 b4_typ <- runRegOnAll(df4_typ)
-write.csv(b4_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/Gd4_typ.csv")
 
 #Adult Typ
-ba_typ <- runRegOnAll(da_typ) #make sure that there there is one column before RC 
-write.csv(ba_typ,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/adult_typ.csv")
+ba_typ <- runRegOnAll(da_typ) 
 
 #Adult Dys
 ba_dys <- runRegOnAll(da_dys)
-write.csv(ba_dys,"/Users/olaozernov-palchik/Dropbox (MIT)/Annals_SVR/paper/jslhr/jslhr_bf_outputs/adult_dys.csv")
 
 
