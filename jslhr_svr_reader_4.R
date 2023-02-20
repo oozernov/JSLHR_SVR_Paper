@@ -16,16 +16,28 @@ all2<-na.omit(all)
 
 all2$DD<-as.factor(all2$DD) #define factor for dyslexia group
 all2$study<-as.factor(all2$study) #define factor for age group
+all2<-all2%>%filter(all2$grade!=5)
+table(all2$study,all2$DD)
+
 
 #### Analyze ####
 
+##### Demographic tables######
+
+
 ##### Do RC components differ based on Dys x Age? ######
+
+# Test for DD interaction (Main analysis)
+fit1<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all2)
+fit2<-lm(RC~grade+DD+(WR+LC+RAN_Letters+Digits), data=all2)
+lmtest::lrtest(fit1,fit2)
 
 # Test for DD x Grade interaction (Main analysis)
 all2$grade<-as.factor(all2$grade)
+
 fit4<-lm(RC~DD*grade*(WR+LC+RAN_Letters+Digits), data=all2)
 fit5<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all2)
-lrtest(fit4,fit5)
+lmtest::lrtest(fit4,fit5)
 
 anova(fit4)
 m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all2, 
@@ -35,14 +47,52 @@ m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all2,
 df_1<-all2%>%filter(all2$grade==1)
 df_2_read<-all2%>%dplyr::filter(grade=='2' & study=="READ")
 df_3_4<-all2%>%filter(all2$grade==4|all2$grade==3)
-df4<-all2%>%filter(all2$grade==4)
 adult<-all2%>%filter(all2$grade=='adult')
 
 # for exploratory analysis seperate 3rd and 4th graders
 df_3<-all2%>%filter(all2$grade==3)
 df_4<-all2%>%filter(all2$grade==4)
 
-##### How do RC components predict RC seperatly by Grade and Group? ######
+#### Create summaries by group ####
+df<-all2
+# Create summary table with means and SD
+summary_table <- aggregate(df[,c("RC", "WR", "RAN_Letters", "LC", "Digits")], 
+                           by = list(DD = df$DD, grade = df$grade), 
+                           FUN = function(x) c(mean = mean(x), sd = sd(x)))
+
+# Rename columns
+colnames(summary_table) <- c("DD", "grade", "RC_mean", "RC_sd", "WR_mean", "WR_sd",
+                             "RAN_Letters_mean", "RAN_Letters_sd", "LC_mean", "LC_sd",
+                             "Digits_mean", "Digits_sd")
+
+# Print summary table
+summary_table
+
+#### Create correlations by group ####
+# Select columns 4 to 8 and compute the correlation matrix
+cor_matrix <- cor(df[, 5:9])
+
+# Print the correlation matrix
+print(cor_matrix)
+
+# Assuming your data frame is named "my_data"
+# Select columns 4 to 8 and compute the correlation matrix
+cor_matrix <- cor(my_data[, 4:8])
+
+# Load the psych package for corr.test()
+library(psych)
+
+# Compute the correlation matrix and p-values using corr.test()
+corr_results <- corr.test(df[, 5:9])
+
+# Extract the p-values from the results and format them
+p_values <- format(round(corr_results$p, 3), nsmall = 3)
+
+# Add the p-values to the correlation matrix
+cor_matrix_with_pvalues <- paste0(format(round(cor_matrix, 2), nsmall = 2), "*\n(p =", p_values, ")")
+print(cor_matrix_with_pvalues)
+
+##### How do RC components predict RC separately by Grade and Group? ######
 
 ### Linear Models
 
@@ -168,7 +218,7 @@ eta_squared(fit_a_t)
 calc.relimp(fit_adult_T, type = c("lmg"),
             rela = TRUE)
 source("~/Dropbox (MIT)/Annals_SVR/reviews/bf_function.R")
-
+library(BayesFactor)
 ### Bayesian Models ###
 # Create and run Bayesian models. This part produces Bayes factors. 
 #To compare best models with other models, I saved these into .csv and 
@@ -186,17 +236,11 @@ b2_typ <- runRegOnAll(df2_typ)
 #2 Dys
 b2_dys <- runRegOnAll(df2_dys)
 
-#3 Typ
+#3/4 Typ
 b3_typ <- runRegOnAll(df3_typ) 
 
-#3 Dys
+#3/4 Dys
 b3_dys <- runRegOnAll(df3_dys)
-
-#4 Dys
-b4_dys <- runRegOnAll(df4_dys)
-
-#4 Typ
-b4_typ <- runRegOnAll(df4_typ)
 
 #Adult Typ
 ba_typ <- runRegOnAll(da_typ) 
