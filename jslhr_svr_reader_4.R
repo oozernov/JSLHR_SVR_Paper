@@ -12,12 +12,11 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 source("bf_function.R")
 all<-read.csv("all_datasets.csv")
 all$study<-as.factor(ifelse(grepl('READER', all$ID), 'reader', ifelse(grepl('READ', all$ID), 'READ', ifelse(grepl('ABCD',  all$ID), 'ABCD','none'))))
-all2<-na.omit(all)
 
-all2$DD<-as.factor(all2$DD) #define factor for dyslexia group
-all2$study<-as.factor(all2$study) #define factor for age group
-all2<-all2%>%filter(all2$grade!=5)
-table(all2$study,all2$DD)
+all$DD<-as.factor(all$DD) #define factor for dyslexia group
+all$study<-as.factor(all$study) #define factor for age group
+all<-all%>%filter(all$grade!=5)
+table(all$study,all$DD)
 
 
 #### Analyze ####
@@ -28,15 +27,15 @@ table(all2$study,all2$DD)
 ##### Do RC components differ based on Dys x Age? ######
 
 # Test for DD interaction (Main analysis)
-fit1<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all2)
-fit2<-lm(RC~grade+DD+(WR+LC+RAN_Letters+Digits), data=all2)
+fit1<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all)
+fit2<-lm(RC~grade+DD+(WR+LC+RAN_Letters+Digits), data=all)
 lmtest::lrtest(fit1,fit2)
 
 # Test for DD x Grade interaction (Main analysis)
-all2$grade<-as.factor(all2$grade)
+all$grade<-as.factor(all2$grade)
 
-fit4<-lm(RC~DD*grade*(WR+LC+RAN_Letters+Digits), data=all2)
-fit5<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all2)
+fit4<-lm(RC~DD*grade*(WR+LC+RAN_Letters+Digits), data=all)
+fit5<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all)
 lmtest::lrtest(fit4,fit5)
 
 anova(fit4)
@@ -44,10 +43,10 @@ m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all2,
         progress=FALSE)
 
 #now create seperate groups
-df_1<-all2%>%filter(all2$grade==1)
-df_2_read<-all2%>%dplyr::filter(grade=='2' & study=="READ")
-df_3_4<-all2%>%filter(all2$grade==4|all2$grade==3)
-adult<-all2%>%filter(all2$grade=='adult')
+df_1<-all%>%filter(all$grade==1)
+df_2_read<-all%>%dplyr::filter(grade=='2' & study=="READ")
+df_3_4<-all%>%filter(all$grade==4|all$grade==3)
+adult<-all%>%filter(all$grade=='adult')
 
 # for exploratory analysis seperate 3rd and 4th graders
 df_3<-all2%>%filter(all2$grade==3)
@@ -187,9 +186,9 @@ calc.relimp(fit_third_T, type = c("lmg"),
 
 ######  Adult #### 
 
-da_dys<-adult%>%filter(DD=="DD")%>%
+da_dys<-adult%>%dplyr::filter(DD=="DD")%>%
   select(DD,RC,WR,RAN_Letters,LC,Digits)
-da_typ<-adult%>%filter(DD=="TYP")%>%
+da_typ<-adult%>%dplyr::filter(DD=="TYP")%>%
   select(DD,RC,WR,RAN_Letters,LC,Digits)
 
 fit_adult_D<-lm(RC~WR+LC+RAN_Letters+Digits, data=da_dys)
@@ -248,4 +247,23 @@ ba_typ <- runRegOnAll(da_typ)
 #Adult Dys
 ba_dys <- runRegOnAll(da_dys)
 
+#### Descriptive tables ####
 
+library(arsenal)
+first<-summary(tableby(DD ~ ., data = df_1,
+                      control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "First Grade Descriptives",text=TRUE,digits=2, digits.p=3)
+second<-summary(tableby(DD ~ ., data = df_2_read,
+                       control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "Second Grade Descriptives",text=TRUE,digits=2, digits.p=3)
+
+third_fourth<-summary(tableby(DD ~ ., data = df_3_4,
+                        control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "ThirdFourth Grade Descriptives",text=TRUE,digits=2, digits.p=3)
+adult<-summary(tableby(DD ~ ., data = adult,
+                              control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "Adult  Descriptives",text=TRUE,digits=2, digits.p=3)
+
+arsenal::write2word(first, "READ_1st_descriptives_new.doc", title="READ 1st Grade Descriptives")
+
+arsenal::write2word(second, "READ_2nd_descriptives_new.doc", title="READ 2nd Grade Descriptives")
+
+arsenal::write2word(third_fourth, "3rd4th_descriptives_new.doc", title="3rd-4th Descriptives")
+
+arsenal::write2word(adult, "Adult_descriptives_new.doc", title="Adult Descriptives")
