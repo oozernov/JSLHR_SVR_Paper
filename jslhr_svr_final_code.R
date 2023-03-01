@@ -16,12 +16,10 @@ all$study<-as.factor(ifelse(grepl('READER', all$ID), 'reader', ifelse(grepl('REA
 all$DD<-as.factor(all$DD) #define factor for dyslexia group
 all$study<-as.factor(all$study) #define factor for age group
 all<-all%>%filter(all$grade!=5)
-table(all$study,all$DD)
+table(all$DD,all$grade)
 
 
 #### Analyze ####
-
-##### Demographic tables######
 
 
 ##### Do RC components differ based on Dys x Age? ######
@@ -45,15 +43,16 @@ m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all2,
 #now create seperate groups
 df_1<-all%>%filter(all$grade==1)
 df_2_read<-all%>%dplyr::filter(grade=='2' & study=="READ")
+df_2_read<-na.omit(df_2_read)
 df_3_4<-all%>%filter(all$grade==4|all$grade==3)
 adult<-all%>%filter(all$grade=='adult')
 
 # for exploratory analysis seperate 3rd and 4th graders
-df_3<-all2%>%filter(all2$grade==3)
-df_4<-all2%>%filter(all2$grade==4)
+df_3<-all%>%filter(all$grade==3)
+df_4<-all%>%filter(all$grade==4)
 
 #### Create summaries by group ####
-df<-all2
+df<-all
 # Create summary table with means and SD
 summary_table <- aggregate(df[,c("RC", "WR", "RAN_Letters", "LC", "Digits")], 
                            by = list(DD = df$DD, grade = df$grade), 
@@ -248,7 +247,10 @@ ba_typ <- runRegOnAll(da_typ)
 ba_dys <- runRegOnAll(da_dys)
 
 #### Descriptive tables ####
-
+df_1$ID<-NULL
+df_2_read$ID<-NULL
+df_3_4$ID<-NULL
+adult$ID<-NULL
 library(arsenal)
 first<-summary(tableby(DD ~ ., data = df_1,
                       control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "First Grade Descriptives",text=TRUE,digits=2, digits.p=3)
@@ -257,7 +259,9 @@ second<-summary(tableby(DD ~ ., data = df_2_read,
 
 third_fourth<-summary(tableby(DD ~ ., data = df_3_4,
                         control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "ThirdFourth Grade Descriptives",text=TRUE,digits=2, digits.p=3)
-adult<-summary(tableby(DD ~ ., data = adult,
+
+adult$ID<-NULL
+adult2<-summary(tableby(DD ~ ., data = adult,
                               control=tableby.control(numeric.stats="meansd", total=FALSE)),title = "Adult  Descriptives",text=TRUE,digits=2, digits.p=3)
 
 arsenal::write2word(first, "READ_1st_descriptives_new.doc", title="READ 1st Grade Descriptives")
@@ -266,4 +270,4 @@ arsenal::write2word(second, "READ_2nd_descriptives_new.doc", title="READ 2nd Gra
 
 arsenal::write2word(third_fourth, "3rd4th_descriptives_new.doc", title="3rd-4th Descriptives")
 
-arsenal::write2word(adult, "Adult_descriptives_new.doc", title="Adult Descriptives")
+arsenal::write2word(adult2, "Adult_descriptives_new3.doc", title="Adult Descriptives")
