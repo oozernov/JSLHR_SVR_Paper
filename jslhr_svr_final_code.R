@@ -30,14 +30,14 @@ fit2<-lm(RC~grade+DD+(WR+LC+RAN_Letters+Digits), data=all)
 lmtest::lrtest(fit1,fit2)
 
 # Test for DD x Grade interaction (Main analysis)
-all$grade<-as.factor(all2$grade)
+all$grade<-as.factor(all$grade)
 
 fit4<-lm(RC~DD*grade*(WR+LC+RAN_Letters+Digits), data=all)
 fit5<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all)
 lmtest::lrtest(fit4,fit5)
 
 anova(fit4)
-m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all2, 
+m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all, 
         progress=FALSE)
 
 #now create seperate groups
