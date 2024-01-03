@@ -37,8 +37,6 @@ fit5<-lm(RC~grade+DD*(WR+LC+RAN_Letters+Digits), data=all)
 lmtest::lrtest(fit4,fit5)
 
 anova(fit4)
-m<-lmBF(RC ~ DD*grade*(WR+LC+RAN_Letters+Digits), data = all, 
-        progress=FALSE)
 
 #now create seperate groups
 df_1<-all%>%filter(all$grade==1)
@@ -52,43 +50,77 @@ df_3<-all%>%filter(all$grade==3)
 df_4<-all%>%filter(all$grade==4)
 
 #### Create summaries by group ####
-df<-all
-# Create summary table with means and SD
-summary_table <- aggregate(df[,c("RC", "WR", "RAN_Letters", "LC", "Digits")], 
-                           by = list(DD = df$DD, grade = df$grade), 
-                           FUN = function(x) c(mean = mean(x), sd = sd(x)))
 
-# Rename columns
-colnames(summary_table) <- c("DD", "grade", "RC_mean", "RC_sd", "WR_mean", "WR_sd",
-                             "RAN_Letters_mean", "RAN_Letters_sd", "LC_mean", "LC_sd",
-                             "Digits_mean", "Digits_sd")
+data<-all
+data$grade<-ifelse(data$grade=="3" | data$grade=="4" , "3-4", data$grade)
 
-# Print summary table
-summary_table
+# Calculate summary statistics by group
+summary_stats <- data %>%
+  group_by(grade, DD) %>%
+  summarise(mean_age = mean(Age),
+            sd_age = sd(Age),
+           min=min(Age),
+           max = max(Age))
+
+# View the summary statistics
+print(summary_stats)
+
+library(tidyr)
+library(dplyr)
+library(stringr) # Add this line
+
+# Function to compute mean, SD and p-value
+compute_stats <- function(data, var) {
+  mean_typ <- mean(data[data$DD == "TYP", var], na.rm = TRUE)
+  sd_typ <- sd(data[data$DD == "TYP", var], na.rm = TRUE)
+  mean_dys <- mean(data[data$DD == "DD", var], na.rm = TRUE)
+  sd_dys <- sd(data[data$DD == "DD", var], na.rm = TRUE)
+  p_value <- t.test(data[data$DD == "TYP", var], data[data$DD == "DD", var], na.rm = TRUE)$p.value
+  return(c(mean_typ, sd_typ, mean_dys, sd_dys, p_value))
+}
+
+# Variables to compute stats for
+vars <- c("Age","WID","WA","SWE","PDE", "Digits", "RAN_Letters", "LC","RC")
+
+# Splitting data into different grade categories
+grades <- unique(data$grade)
+results <- data.frame()
+
+# Loop through grades and variables
+for (grade in grades) {
+  for (var in vars) {
+    stats <- compute_stats(data[data$grade == grade, ], var)
+    temp_df <- data.frame(grade=grade, variable=var, t(stats))
+    colnames(temp_df) <- c("Grade", "Variable", "Mean_Typ", "SD_Typ", "Mean_Dys", "SD_Dys", "p_value")
+    results <- rbind(results, temp_df)
+  }
+}
+
+# Pivoting the results data frame to wide format for display
+results_wide <- results %>% pivot_wider(names_from = Grade, values_from = c(Mean_Typ, SD_Typ, Mean_Dys, SD_Dys, p_value))
+
+# Renaming the columns
+results_wide <- results_wide %>% 
+  rename_with(.cols = starts_with("1st grade"), 
+              .fn = ~str_replace(., "1st grade", "1st grade Typ M")) %>%
+  rename_with(.cols = starts_with("2nd grade"), 
+              .fn = ~str_replace(., "2nd grade", "2nd grade Typ M")) %>%
+  rename_with(.cols = starts_with("3rd - 4th grade"), 
+              .fn = ~str_replace(., "3rd - 4th grade", "3rd - 4th grade Typ M")) %>%
+  rename_with(.cols = starts_with("Adult"), 
+              .fn = ~str_replace(., "Adult", "Adult Typ M"))
+
+# Display the results
+print(results_wide)
+#write.csv(results_wide,"Table3_070523.csv")
 
 #### Create correlations by group ####
 # Select columns 4 to 8 and compute the correlation matrix
-cor_matrix <- cor(df[, 5:9])
+cor_matrix <- cor(df[, 5:14])
 
 # Print the correlation matrix
 print(cor_matrix)
 
-# Assuming your data frame is named "my_data"
-# Select columns 4 to 8 and compute the correlation matrix
-cor_matrix <- cor(my_data[, 4:8])
-
-# Load the psych package for corr.test()
-library(psych)
-
-# Compute the correlation matrix and p-values using corr.test()
-corr_results <- corr.test(df[, 5:9])
-
-# Extract the p-values from the results and format them
-p_values <- format(round(corr_results$p, 3), nsmall = 3)
-
-# Add the p-values to the correlation matrix
-cor_matrix_with_pvalues <- paste0(format(round(cor_matrix, 2), nsmall = 2), "*\n(p =", p_values, ")")
-print(cor_matrix_with_pvalues)
 
 ##### How do RC components predict RC separately by Grade and Group? ######
 
@@ -115,7 +147,7 @@ calc.relimp(fit_first_D, type = c("lmg"),
 #Typ
 fit_first_T<-lm(RC~WR+LC+RAN_Letters+Digits, data=df1_typ)
 summary(fit_first_T)
-out_3T<-tidy(fit_first_T)
+out_1T<-tidy(fit_first_T)
 knitr::kable(out_1T)
 lm.beta(fit_first_T)
 fit_first_T2 <- stepAIC(fit_first_T, direction = "both",steps = 1000)
@@ -134,7 +166,7 @@ df2_typ<-df_2_read%>%dplyr::filter(DD=="TYP")%>%
 #Dys
 fit_second_D<-lm(RC~WR+LC+RAN_Letters+Digits, data=df2_dys)
 summary(fit_second_D)
-out_3D<-tidy(fit_second_D)
+out_2D<-tidy(fit_second_D)
 knitr::kable(out_2D)
 lm.beta(fit_second_D)
 fit_second_D2 <- stepAIC(fit_second_D, direction = "both",steps = 1000)
@@ -145,7 +177,7 @@ calc.relimp(fit_second_D, type = c("lmg"),
 #Typ
 fit_second_T<-lm(RC~WR+LC+RAN_Letters+Digits, data=df2_typ)
 summary(fit_second_T)
-out_3T<-tidy(fit_second_T)
+out_2T<-tidy(fit_second_T)
 knitr::kable(out_2T)
 lm.beta(fit_second_T)
 fit_second_t2 <- stepAIC(fit_second_T, direction = "both",steps = 1000)
