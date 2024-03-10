@@ -247,7 +247,8 @@ eta_squared(fit_a_t)
 
 calc.relimp(fit_adult_T, type = c("lmg"),
             rela = TRUE)
-source("~/Dropbox (MIT)/Annals_SVR/reviews/bf_function.R")
+
+source("bf_function.R")
 library(BayesFactor)
 ### Bayesian Models ###
 # Create and run Bayesian models. This part produces Bayes factors. 
